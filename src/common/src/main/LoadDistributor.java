@@ -21,10 +21,12 @@ public class LoadDistributor {
             try {
 
                 // make a new space for this specific user
-                String uuid = (String) listenSpace.get(new FormalField(String.class))[0];
+                Object[] datas = listenSpace.get(new FormalField(String.class), new FormalField(String.class), new FormalField(Object.class));
+//                System.out.println(datas[2]);
+
 
                 // create new thread to avoid blocking the main thread
-                new Thread(new CreatePrivateSpace(spaceRepository, listenSpace, uuid)).start();
+                new Thread(new CreatePrivateSpace(spaceRepository, listenSpace, datas)).start();
 
 
             } catch (InterruptedException e) {
@@ -39,49 +41,42 @@ public class LoadDistributor {
 class CreatePrivateSpace implements Runnable{
 
     SpaceRepository spaceRepository;
-    String uuid;
+    Object[] datas;
     SequentialSpace listenSpace;
+    String uuid;
+    File data;
 
-    public CreatePrivateSpace(SpaceRepository spaceRepository, SequentialSpace listenSpace, String uuid) {
+    public CreatePrivateSpace(SpaceRepository spaceRepository, SequentialSpace listenSpace, Object[] datas) {
         this.spaceRepository=spaceRepository;
-        this.uuid=uuid;
+        this.datas=datas;
         this.listenSpace=listenSpace;
+        this.data= (File) datas[2];
+        this.uuid = (String) datas[1];
     }
 
     @Override
     public void run() {
         try {
-            SequentialSpace dataSpace = new SequentialSpace();
-            spaceRepository.add(uuid, dataSpace);
-            spaceRepository.addGate("tcp://localhost:5000/?keep");
 
-            // communicate back to user that space has been created
-            listenSpace.put(uuid+"response", "ok");
-
-            while (true) {
-                // get data from private user
-                Object[] datas = dataSpace.get(new ActualField("data"), new FormalField(Object.class));
-                // once data has been received split it up and send it to serverJava
-                List<ByteArrayOutputStream> outputStreamList = split.split((String) datas[1], uuid);
+            System.out.println(data.getPath());
+            List<String> outputFilePath = split.split(data.getPath(), uuid);
+//                List<ByteArrayOutputStream> outputStreamList = split.split((String) data, uuid);
                 // send data to serverJava
-                if (outputStreamList!=null) {
+                if (outputFilePath!=null) {
                     RemoteSpace serverSpace = new RemoteSpace("tcp://localhost:8080/"+LISTEN_SPACE+"?keep");
-                    serverSpace.put(uuid);
-                    // server created
-                    String response = (String) serverSpace.get(new ActualField("response"), new FormalField(String.class))[1];
-                    if (response.equals("ok")) {
-
-                    }
-//                    for (int i = 0; i < outputStreamList.size(); i++) {
-//
-//                        OutputStream outputStream = new FileOutputStream("/home/kamal/Downloads/data/yolo"+i+".csv");
-//                        outputStreamList.get(i).writeTo(outputStream);
+                    serverSpace.put(uuid+"-server",uuid, outputFilePath);
+//                    for (ByteArrayOutputStream byteArrayOutputStream : outputStreamList) {
+//                        serverSpace.put(uuid, byteArrayOutputStream);
 //                    }
+//                    // send value to indicate end of transmission
+//                    serverSpace.put(uuid, "end");
+                    serverSpace.get(new ActualField("server-"+uuid), new FormalField(Object.class));
+
                 } else {
                     System.out.println("NULL");
                 }
 
-            }
+//            }
 
         } catch (InterruptedException e) {
             e.printStackTrace();

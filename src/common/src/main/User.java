@@ -27,8 +27,11 @@ public class User {
             // connect to global remotespace to create specific space
             RemoteSpace remoteSpace = new RemoteSpace("tcp://localhost:5000/"+LISTEN_SPACE+"?keep");
 
-
+            // send data file path to model manager
             remoteSpace.put(uuid.toString()+"-server", uuid.toString(), newdataFile);
+
+            // get updates from manager
+
 
             // wait for final response
             remoteSpace.get(new ActualField("server-"+uuid.toString()), new FormalField(Object.class));

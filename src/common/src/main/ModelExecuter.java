@@ -2,14 +2,15 @@ package common.src.main;
 import okhttp3.Response;
 import okio.BufferedSink;
 import okio.Okio;
-import org.jspace.FormalField;
-import org.jspace.SequentialSpace;
-import org.jspace.Space;
-import org.jspace.SpaceRepository;
+import org.jspace.*;
 
 import java.io.*;
+import java.net.UnknownHostException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static common.src.main.Constants.LISTEN_SPACE;
+import static common.src.main.Constants.UPDATES_SPACE;
 
 public class ModelExecuter {
     public static void main(String[] args) {
@@ -23,7 +24,9 @@ public class ModelExecuter {
         while (true) {
             try {
 
-                Object[] datas = listenSpace.get(new FormalField(String.class), new FormalField(Object.class), new FormalField(String.class), new FormalField(Object.class));
+                Object[] datas = listenSpace.get(new FormalField(String.class), new FormalField(Object.class), new FormalField(String[].class), new FormalField(Object.class));
+
+                // start new thread
                 new Thread(new createPrivateServer(datas, listenSpace)).start();
 
             } catch (InterruptedException e) {
@@ -39,31 +42,85 @@ class createPrivateServer implements Runnable {
     private String uuid;
     private SequentialSpace listenSpace;
 //    private Object filepaths;
-    private final String scriptpath;
+    private final String[] scriptPaths;
     private final String datapath;
+
 
     public createPrivateServer(Object[] datas, SequentialSpace listenSpace){
         this.uuid = (String) datas[1];
         this.listenSpace = listenSpace;
-        this.scriptpath = (String) datas[2];
+        this.scriptPaths = (String[]) datas[2];
         this.datapath = (String) datas[3];
+
     }
 
     @Override
     public void run() {
 
-        String s = null;
-
         try {
+            // connect to manager space
+            RemoteSpace managerSpace = new RemoteSpace("tcp://localhost:8000/"+UPDATES_SPACE+uuid+"?keep");
 
-            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash","-c","source /home/kamal/projects/quickml/env/bin/activate; python3 "+scriptpath});
 
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//            String scriptpath="/home/kamal/Documents/boost.py";
 
-            System.out.println("Here is the standard output of the command:\n");
-            while ((s = stdInput.readLine()) != null) {
-                System.out.println(s);
+            // IO operations so we must spawn new thread for each model in modellist
+
+            for (int i=0; i<scriptPaths.length; i++){
+
+                int finalI = i;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String s = null;
+                            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI]});
+
+                            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                            System.out.println("Here is the standard output of the command:\n");
+                            while ((s = stdInput.readLine()) != null) {
+//                                System.out.println(s);
+                                // put updates in manager space
+                                Pattern pattern;
+                                String out = null;
+
+                                if (finalI==0) {
+                                    pattern = Pattern.compile("[0-9]\\s\\w+\\s[0-9]+");
+                                } else {
+                                    pattern = Pattern.compile("\\s+[0-9]+");
+                                }
+                                Matcher matcher = pattern.matcher(s);
+
+                                if (matcher.find()) {
+                                    out = matcher.group(0);
+                                    managerSpace.get(new ActualField("lock"));
+                                    System.out.println("got lock");
+                                    Object[] res=managerSpace.get(new ActualField("updates"), new FormalField(Object.class));
+                                    System.out.println("ssss");
+                                    ((String[]) res[1])[finalI] =  ("Model "+finalI+" " + out);
+
+                                    managerSpace.put("updates", res[1]);
+//                                    managerSpace.put("updates", new String[] {("Model "+finalI+" " + out), "ss"});
+//                                    managerSpace.put("Model "+finalI, out);
+                                    managerSpace.put("lock");
+                                    System.out.println("put lcok");
+                                }
+
+
+//                                managerSpace.put("Model "+finalI, s);
+                            }
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+
             }
+
 
         } catch (IOException e) {
             e.printStackTrace();

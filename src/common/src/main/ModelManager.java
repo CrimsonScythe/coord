@@ -1,11 +1,10 @@
 package common.src.main;
-
-import org.jspace.*;
-
+import org.jspace.FormalField;
+import org.jspace.RemoteSpace;
+import org.jspace.SequentialSpace;
+import org.jspace.SpaceRepository;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
 
 import static common.src.main.Constants.LISTEN_SPACE;
 
@@ -24,12 +23,9 @@ public class ModelManager {
 
                 // make a new space for this specific user
                 Object[] datas = listenSpace.get(new FormalField(String.class), new FormalField(String.class), new FormalField(Object.class));
-//                System.out.println(datas[2]);
-
 
                 // create new thread to avoid blocking the main thread
                 new Thread(new createPrivateSpace(spaceRepository, listenSpace, datas)).start();
-
 
             } catch (InterruptedException e) {
 
@@ -65,34 +61,12 @@ class createPrivateSpace implements Runnable{
 
             // Connect to ModelExecuter
             RemoteSpace serverSpace = new RemoteSpace("tcp://localhost:8080/"+LISTEN_SPACE+"?keep");
+
             // model manager puts the script and data
             serverSpace.put(uuid+"-exec", uuid ,"/home/kamal/Documents/forest.py", data.getPath());
 
-//            System.out.println(data.getPath());
 
-//            List<String> outputFilePaths = split.split(data.getPath(), uuid);
-//                List<ByteArrayOutputStream> outputStreamList = split.split((String) data, uuid);
-            // send data to serverJava
-//            if (outputFilePaths!=null) {
-//                RemoteSpace serverSpace = new RemoteSpace("tcp://localhost:8080/"+LISTEN_SPACE+"?keep");
-//                serverSpace.put(uuid+"-server",uuid, outputFilePaths);
-////                    for (ByteArrayOutputStream byteArrayOutputStream : outputStreamList) {
-////                        serverSpace.put(uuid, byteArrayOutputStream);
-////                    }
-////                    // send value to indicate end of transmission
-////                    serverSpace.put(uuid, "end");
-//                serverSpace.get(new ActualField("server-"+uuid), new FormalField(Object.class));
-//
-//            } else {
-//                System.out.println("NULL");
-//            }
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
 

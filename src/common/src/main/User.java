@@ -40,6 +40,7 @@ public class User {
 //            byte[] fileContent = Files.readAllBytes(new File(dataFile).toPath());
 //            remoteSpace.put(uuid.toString()+"-server", uuid.toString(), fileContent);
 
+
             remoteSpace.put(uuid.toString()+"-server", uuid.toString(), newdataFile);
 
             // wait for final response
@@ -52,3 +53,10 @@ public class User {
 
     }
 }
+
+//TODO: change http to put and send the python script in a tuple space
+//TODO: the python script will be executed on the serverJava itself
+//TODO: maybe something that tells how many computers are available for crunching the data, if for example
+//TODO: there are 3 available and 4 files then what?
+//TODO: store training model parameters in a separate server and have user choose which one he wants
+//TODO: for testing. Sometimes for example users want complex models for testing with lower loss.

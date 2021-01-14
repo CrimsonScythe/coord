@@ -59,12 +59,12 @@ class CreatePrivateSpace implements Runnable{
         try {
 
             System.out.println(data.getPath());
-            List<String> outputFilePath = split.split(data.getPath(), uuid);
+            List<String> outputFilePaths = split.split(data.getPath(), uuid);
 //                List<ByteArrayOutputStream> outputStreamList = split.split((String) data, uuid);
                 // send data to serverJava
-                if (outputFilePath!=null) {
+                if (outputFilePaths!=null) {
                     RemoteSpace serverSpace = new RemoteSpace("tcp://localhost:8080/"+LISTEN_SPACE+"?keep");
-                    serverSpace.put(uuid+"-server",uuid, outputFilePath);
+                    serverSpace.put(uuid+"-server",uuid, outputFilePaths);
 //                    for (ByteArrayOutputStream byteArrayOutputStream : outputStreamList) {
 //                        serverSpace.put(uuid, byteArrayOutputStream);
 //                    }

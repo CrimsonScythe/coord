@@ -1,13 +1,9 @@
 package common.src.main;
-
 import com.opencsv.CSVWriter;
 import okio.BufferedSink;
 import okio.Okio;
 import org.jspace.*;
-
-
 import okhttp3.*;
-
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;

@@ -73,7 +73,8 @@ class createPrivateSpace implements Runnable{
              * put empty updates list
              */
             updatesSpace.put("lock");
-            updatesSpace.put("updates", new String[]{"0", "0"});
+            updatesSpace.put("updates0", "");
+            updatesSpace.put("updates1", "");
 
             spaceRepository.add(UPDATES_SPACE+uuid, updatesSpace);
             spaceRepository.addGate("tcp://localhost:8000/?keep");
@@ -89,12 +90,11 @@ class createPrivateSpace implements Runnable{
 
 //                Object[] responses = updatesSpace.get(new FormalField(String.class), new FormalField(String.class));
 
-                Object[] updates = updatesSpace.getp(new ActualField("updates"), new FormalField(String[].class));
+                Object[] updates1 = updatesSpace.get(new ActualField("updates0"), new FormalField(String.class));
+                Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
 
-                if (updates!=null) {
+                    System.out.println((updates1)[1] + " " + (updates2)[1]);
 
-                    System.out.println(((String[]) updates[1])[0] + " " + ((String[]) updates[1])[1]);
-                }
 //                System.out.println(responses[0] +" "+ responses[1]);
 
             }

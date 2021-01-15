@@ -17,10 +17,10 @@ public class User {
 
         try {
             //create local directory
-            File theDir = new File("/home/kamal/Downloads/data/"+uuid+"/");
-            if (!theDir.exists()){
-                theDir.mkdirs();
-            }
+//            File theDir = new File("/home/kamal/Downloads/data/"+uuid+"/");
+//            if (!theDir.exists()){
+//                theDir.mkdirs();
+//            }
 
             File newdataFile = new File("/home/kamal/Downloads/data/ks-projects.csv");
 

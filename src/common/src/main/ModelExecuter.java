@@ -86,7 +86,7 @@ class createPrivateServer implements Runnable {
                                 String out = null;
 
                                 if (finalI==0) {
-                                    pattern = Pattern.compile("[0-9]\\s\\w+\\s[0-9]+");
+                                    pattern = Pattern.compile("[0-9]+\\s\\w+\\s[0-9]+");
                                 } else {
                                     pattern = Pattern.compile("\\s+[0-9]+");
                                 }
@@ -94,17 +94,18 @@ class createPrivateServer implements Runnable {
 
                                 if (matcher.find()) {
                                     out = matcher.group(0);
-                                    managerSpace.get(new ActualField("lock"));
-                                    System.out.println("got lock");
-                                    Object[] res=managerSpace.get(new ActualField("updates"), new FormalField(Object.class));
-                                    System.out.println("ssss");
-                                    ((String[]) res[1])[finalI] =  ("Model "+finalI+" " + out);
+//                                    managerSpace.get(new ActualField("lock"));
+//                                    System.out.println("got lock");
 
-                                    managerSpace.put("updates", res[1]);
+//                                    Object[] res=managerSpace.get(new ActualField("updates"), new FormalField(Object.class));
+//                                    System.out.println("ssss");
+//                                    ((String[]) res[1])[finalI] =  ("Model "+finalI+" " + out);
+
+                                    managerSpace.put("updates"+finalI, ("Model "+finalI+" " + out));
 //                                    managerSpace.put("updates", new String[] {("Model "+finalI+" " + out), "ss"});
 //                                    managerSpace.put("Model "+finalI, out);
-                                    managerSpace.put("lock");
-                                    System.out.println("put lcok");
+//                                    managerSpace.put("lock");
+//                                    System.out.println("put lcok");
                                 }
 
 

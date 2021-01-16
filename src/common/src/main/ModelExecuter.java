@@ -6,18 +6,22 @@ import okio.Okio;
 import org.jspace.*;
 
 import java.io.*;
+import java.rmi.Remote;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static common.src.main.Constants.LISTEN_SPACE;
-import static common.src.main.Constants.UPDATES_SPACE;
+import static common.src.main.Constants.*;
 
 public class ModelExecuter {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         SequentialSpace listenSpace = new SequentialSpace();
+        SequentialSpace resourceSpace = new SequentialSpace();
         SpaceRepository spaceRepository = new SpaceRepository();
 
+        spaceRepository.add(RESOURCES_SPACE, resourceSpace);
+        // add initial resources
+        resourceSpace.put("resources", 3);
         spaceRepository.add(LISTEN_SPACE, listenSpace);
         spaceRepository.addGate("tcp://localhost:8080/?keep");
 
@@ -34,7 +38,7 @@ public class ModelExecuter {
                 );
 
                 // start new thread
-                new Thread(new createPrivateServer(spaceRepository, datas, listenSpace)).start();
+                new Thread(new createPrivateServer(spaceRepository, datas, listenSpace, resourceSpace)).start();
 
             } catch (InterruptedException e) {
 
@@ -54,8 +58,9 @@ class createPrivateServer implements Runnable {
     private final String mode;
     private final String column;
     private final SpaceRepository spaceRepository;
+    private final SequentialSpace resourceSpace;
 
-    public createPrivateServer(SpaceRepository spaceRepository, Object[] datas, SequentialSpace listenSpace){
+    public createPrivateServer(SpaceRepository spaceRepository, Object[] datas, SequentialSpace listenSpace, SequentialSpace resourceSpace){
         this.uuid = (String) datas[1];
         this.listenSpace = listenSpace;
         this.scriptPaths = (String[]) datas[2];
@@ -63,6 +68,7 @@ class createPrivateServer implements Runnable {
         this.mode = (String) datas[4];
         this.column = (String) datas[5];
         this.spaceRepository=spaceRepository;
+        this.resourceSpace = resourceSpace;
     }
 
     @Override
@@ -82,42 +88,83 @@ class createPrivateServer implements Runnable {
             // connect to manager space
             RemoteSpace managerSpace = new RemoteSpace("tcp://localhost:8000/"+UPDATES_SPACE+uuid+"?keep");
 
+            // resources is >= script length then we can execute in parallel
+            // otherwise we cannot
+            // TODO: mutex in code block below?
 
-//            String scriptpath="/home/kamal/Documents/boost.py";
+            int resources = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+            System.out.println(resources);
 
-            // IO operations so we must spawn new thread for each model in modellist
+            if (resources >= scriptPaths.length){
 
-            for (int i=0; i<scriptPaths.length; i++){
+                // indicate to manager that execution is parallel
+                managerSpace.put("mode", "parallel");
+                // reduce resources to indicate that resources are in use
+                resources =-scriptPaths.length;
+                resourceSpace.put("resources", resources);
+                // parallel
+                executeParallel(managerSpace);
+                // free resources
 
-                int finalI = i;
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            String s = null;
-                            String args = new String(datapath+" "+mode+" "+column+" "+uuid);
-                            System.out.println("yolo");
-                            System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args);
-                            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args});
-                            boolean startmatch=false;
-                            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(int.class))[1];
+                if (re==0){
+                    resourceSpace.put("resources", scriptPaths.length);
+                } else {
+                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(int.class))[1];
+                    re1+= scriptPaths.length;
+                    resourceSpace.put("resources", re1);
+                }
 
-                            System.out.println("Here is the standard output of the command:\n");
-                            while ((s = stdInput.readLine()) != null) {
+            } else {
+                // sequential
+
+                // indicate to manager that execution is sequential
+            }
+
+
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    public void executeParallel(RemoteSpace managerSpace) {
+        for (int i=0; i < scriptPaths.length; i++){
+            int finalI = i;
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String s = null;
+                        String args = new String(datapath+" "+mode+" "+column+" "+uuid);
+                        System.out.println("yolo");
+                        System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args);
+                        Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args});
+                        boolean startmatch=false;
+                        BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                        System.out.println("Here is the standard output of the command:\n");
+                        while ((s = stdInput.readLine()) != null) {
 //                                System.out.println(s);
-                                // put updates in manager space
-                                Pattern pattern;
-                                String out = null;
+                            // put updates in manager space
+                            Pattern pattern;
+                            String out = null;
 //                                System.out.println(s);
-                                if (finalI==0) {
-                                    pattern = Pattern.compile("[0-9]+\\s\\w+\\s[0-9]+");
-                                } else {
-                                    pattern = Pattern.compile("\\s+[0-9]+");
-                                }
-                                Matcher matcher = pattern.matcher(s);
+                            if (finalI==0) {
+                                pattern = Pattern.compile("[0-9]+\\s\\w+\\s[0-9]+");
+                            } else {
+                                pattern = Pattern.compile("\\s+[0-9]+");
+                            }
+                            Matcher matcher = pattern.matcher(s);
 
-                                if (matcher.find()) {
-                                    out = matcher.group(0);
+                            if (matcher.find()) {
+                                out = matcher.group(0);
 //
 //                                    if (finalI==1 && startmatch){
 //                                        managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
@@ -130,20 +177,20 @@ class createPrivateServer implements Runnable {
 //                                    if (finalI==1 && s.contains("rows")){
 //                                        startmatch = true;
 //                                    }
-                                    managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
+                                managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
 
-
-                                }
 
                             }
 
-                            /**
-                             * Start testing
-                             */
+                        }
+
+                        /**
+                         * Start testing
+                         */
 
 //                            privateSpace.get("data", new FormalField())
 
-                            // model is trained
+                        // model is trained
 //                            System.out.println("done "+finalI);
 //
 //                            // start model testing
@@ -155,21 +202,15 @@ class createPrivateServer implements Runnable {
 //
 //                            }
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                }).start();
+                }
+            }).start();
 
-            }
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-
     }
 
     public void createOutputCSV(Response response) {
@@ -188,34 +229,6 @@ class createPrivateServer implements Runnable {
 
     }
 
-
 }
 
 
-
-class pipeToStdout implements Runnable {
-
-    @Override
-    public void run() {
-
-        try {
-
-            Space space = new SequentialSpace();
-            SpaceRepository spaceRepository = new SpaceRepository();
-            spaceRepository.add("space", space);
-            spaceRepository.addGate("tcp://localhost:3690/?keep");
-
-            while (true){
-
-                String out = (String) space.get(new FormalField(String.class))[0];
-                System.out.println(out);
-
-            }
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-    }
-}

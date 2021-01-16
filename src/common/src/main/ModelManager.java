@@ -103,45 +103,52 @@ class createPrivateSpace implements Runnable{
             serverSpace.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), mode, column);
 
             // waits for updates from model executor
-            while (true){
 
-//                Object[] responses = updatesSpace.get(new FormalField(String.class), new FormalField(String.class));
-
-                Object[] updates1 = updatesSpace.get(new ActualField("updates0"), new FormalField(String.class));
-                Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
-
-                if (!updates1[1].toString().equals("") && !updates2[1].toString().equals("")) {
+            // here we must wait and see if the execution is parallel or sequential
+            // TODO:// branching good for report
+            String mode = (String) updatesSpace.get(new ActualField("mode"), new FormalField(String.class))[1];
+            if (mode.equals("parallel")) {
+                while (true){
 
 
-                    int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
-                    int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
 
-                    float c = ((float) a / (float) b) * 100.0f;
+                    Object[] updates1 = updatesSpace.get(new ActualField("updates0"), new FormalField(String.class));
+                    Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
 
-                    int d = Integer.parseInt(updates2[1].toString().split("\\s+")[2]);
+                    if (!updates1[1].toString().equals("") && !updates2[1].toString().equals("")) {
 
-                    System.out.println((int) c + "%" + " " + (int) d + "%");
 
-                    String updates = (int) c + "%" + " " + (int) d + "%";
+                        int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
+                        int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
 
-                    // put the prettied content to userupdatespace
+                        float c = ((float) a / (float) b) * 100.0f;
 
-                    if (((int) c)==100 && ((int) d)==100) {
-                        // TODO: signal break out of loop to user
-                        userUpdatesSpace.put("updates", updates);
-                        userUpdatesSpace.put("loop", "break");
-                        break;
-                    } else {
-                        // TODO: otherwise continue sending updates
-                        userUpdatesSpace.put("updates", updates);
+                        int d = Integer.parseInt(updates2[1].toString().split("\\s+")[2]);
+
+                        System.out.println((int) c + "%" + " " + (int) d + "%");
+
+                        String updates = (int) c + "%" + " " + (int) d + "%";
+
+                        // put the prettied content to userupdatespace
+
+                        if (((int) c)==100 && ((int) d)==100) {
+                            // TODO: signal break out of loop to user
+                            userUpdatesSpace.put("updates", updates);
+                            userUpdatesSpace.put("loop", "break");
+                            break;
+                        } else {
+                            // TODO: otherwise continue sending updates
+                            userUpdatesSpace.put("updates", updates);
+                        }
+
+
                     }
 
 
                 }
-
+            } else {
 
             }
-
 //            Object[] testData = userUpdatesSpace.get(new ActualField("user"+uuid), new FormalField(Object.class), new FormalField(Object.class), new FormalField(String.class), new FormalField(String.class));
 //            RemoteSpace remoteSpace = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");
 //            remoteSpace.put()

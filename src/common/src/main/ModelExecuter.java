@@ -1,11 +1,11 @@
 package common.src.main;
+
 import okhttp3.Response;
 import okio.BufferedSink;
 import okio.Okio;
 import org.jspace.*;
 
 import java.io.*;
-import java.net.UnknownHostException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,10 +24,17 @@ public class ModelExecuter {
         while (true) {
             try {
 
-                Object[] datas = listenSpace.get(new FormalField(String.class), new FormalField(Object.class), new FormalField(String[].class), new FormalField(Object.class));
+                Object[] datas = listenSpace.get(
+                        new FormalField(String.class),
+                        new FormalField(Object.class),
+                        new FormalField(String[].class),
+                        new FormalField(Object.class),
+                        new FormalField(String.class),
+                        new FormalField(String.class)
+                );
 
                 // start new thread
-                new Thread(new createPrivateServer(datas, listenSpace)).start();
+                new Thread(new createPrivateServer(spaceRepository, datas, listenSpace)).start();
 
             } catch (InterruptedException e) {
 
@@ -44,20 +51,34 @@ class createPrivateServer implements Runnable {
 //    private Object filepaths;
     private final String[] scriptPaths;
     private final String datapath;
+    private final String mode;
+    private final String column;
+    private final SpaceRepository spaceRepository;
 
-
-    public createPrivateServer(Object[] datas, SequentialSpace listenSpace){
+    public createPrivateServer(SpaceRepository spaceRepository, Object[] datas, SequentialSpace listenSpace){
         this.uuid = (String) datas[1];
         this.listenSpace = listenSpace;
         this.scriptPaths = (String[]) datas[2];
         this.datapath = (String) datas[3];
-
+        this.mode = (String) datas[4];
+        this.column = (String) datas[5];
+        this.spaceRepository=spaceRepository;
     }
 
     @Override
     public void run() {
 
+//        System.out.println(this.uuid+" "+this.l);
+        System.out.println(this.mode);
+        System.out.println(this.column);
+
         try {
+
+            // create local space so that the manager can connect and send test data
+            SequentialSpace privateSpace = new SequentialSpace();
+            spaceRepository.add(uuid, privateSpace);
+            spaceRepository.addGate("tcp://localhost:8080/?keep");
+
             // connect to manager space
             RemoteSpace managerSpace = new RemoteSpace("tcp://localhost:8000/"+UPDATES_SPACE+uuid+"?keep");
 
@@ -74,8 +95,11 @@ class createPrivateServer implements Runnable {
                     public void run() {
                         try {
                             String s = null;
-                            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI]});
-
+                            String args = new String(datapath+" "+mode+" "+column+" "+uuid);
+                            System.out.println("yolo");
+                            System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args);
+                            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args});
+                            boolean startmatch=false;
                             BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
                             System.out.println("Here is the standard output of the command:\n");
@@ -84,7 +108,7 @@ class createPrivateServer implements Runnable {
                                 // put updates in manager space
                                 Pattern pattern;
                                 String out = null;
-
+//                                System.out.println(s);
                                 if (finalI==0) {
                                     pattern = Pattern.compile("[0-9]+\\s\\w+\\s[0-9]+");
                                 } else {
@@ -94,23 +118,42 @@ class createPrivateServer implements Runnable {
 
                                 if (matcher.find()) {
                                     out = matcher.group(0);
-//                                    managerSpace.get(new ActualField("lock"));
-//                                    System.out.println("got lock");
+//
+//                                    if (finalI==1 && startmatch){
+//                                        managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
+//
+//                                    }else if(finalI==0) {
+//                                        managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
+////
+//                                    }
+//
+//                                    if (finalI==1 && s.contains("rows")){
+//                                        startmatch = true;
+//                                    }
+                                    managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
 
-//                                    Object[] res=managerSpace.get(new ActualField("updates"), new FormalField(Object.class));
-//                                    System.out.println("ssss");
-//                                    ((String[]) res[1])[finalI] =  ("Model "+finalI+" " + out);
 
-                                    managerSpace.put("updates"+finalI, ("Model "+finalI+" " + out));
-//                                    managerSpace.put("updates", new String[] {("Model "+finalI+" " + out), "ss"});
-//                                    managerSpace.put("Model "+finalI, out);
-//                                    managerSpace.put("lock");
-//                                    System.out.println("put lcok");
                                 }
 
-
-//                                managerSpace.put("Model "+finalI, s);
                             }
+
+                            /**
+                             * Start testing
+                             */
+
+//                            privateSpace.get("data", new FormalField())
+
+                            // model is trained
+//                            System.out.println("done "+finalI);
+//
+//                            // start model testing
+//                            Process process1 = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI]});
+//                            BufferedReader stdInput1 = new BufferedReader(new InputStreamReader(process1.getInputStream()));
+//                            String s1=null;
+//
+//                            while ((s1 = stdInput1.readLine()) != null){
+//
+//                            }
 
                         } catch (IOException e) {
                             e.printStackTrace();

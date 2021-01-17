@@ -21,7 +21,7 @@ public class ModelExecuter {
 
         spaceRepository.add(RESOURCES_SPACE, resourceSpace);
         // add initial resources
-        resourceSpace.put("resources", 3);
+        resourceSpace.put("resources", 1);
         spaceRepository.add(LISTEN_SPACE, listenSpace);
         spaceRepository.addGate("tcp://localhost:8080/?keep");
 
@@ -92,33 +92,57 @@ class createPrivateServer implements Runnable {
             // otherwise we cannot
             // TODO: mutex in code block below?
 
-            int resources = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
-            System.out.println(resources);
+            int resourcesQ = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+            System.out.println(resourcesQ);
 
-            if (resources >= scriptPaths.length){
-
+            if (resourcesQ >= scriptPaths.length){
+                int resources = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
                 // indicate to manager that execution is parallel
                 managerSpace.put("mode", "parallel");
                 // reduce resources to indicate that resources are in use
-                resources =-scriptPaths.length;
+                resources -= scriptPaths.length;
                 resourceSpace.put("resources", resources);
                 // parallel
                 executeParallel(managerSpace);
                 // free resources
 
-                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(int.class))[1];
+                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
                 if (re==0){
                     resourceSpace.put("resources", scriptPaths.length);
                 } else {
-                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(int.class))[1];
+                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
                     re1+= scriptPaths.length;
                     resourceSpace.put("resources", re1);
                 }
 
             } else {
                 // sequential
-
                 // indicate to manager that execution is sequential
+                managerSpace.put("mode", "sequential");
+
+                for (int i=0; i < scriptPaths.length; i++){
+                    int resources = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                    System.out.println("resses "+resources);
+                    resources -= 1;
+                    resourceSpace.put("resources", resources);
+                    executeSequential(managerSpace, scriptPaths[i], i);
+                    int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+                    System.out.println("re is "+re);
+                    if (re==0){
+                        resourceSpace.put("resources", 1);
+                    } else {
+                        int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                        re1+= 1;
+                        resourceSpace.put("resources", re1);
+                    }
+                }
+
+                // reduce resources by 1 to indicate in use
+
+                // sequential
+                // free resources
+
+
             }
 
 
@@ -132,6 +156,82 @@ class createPrivateServer implements Runnable {
 
     }
 
+
+    public void executeSequential(RemoteSpace managerSpace, String scriptPath, int index) {
+
+                try {
+                    String s = null;
+                    String args = new String(datapath+" "+mode+" "+column+" "+uuid);
+                    System.out.println("yolo");
+                    System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPath + " " + args);
+                    Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPath + " " + args});
+                    boolean startmatch=false;
+                    BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                    System.out.println("Here is the standard output of the command:\n");
+                    while ((s = stdInput.readLine()) != null) {
+//                                System.out.println(s);
+                        // put updates in manager space
+                        Pattern pattern;
+                        String out = null;
+//                                System.out.println(s);
+                        if (scriptPath.contains("forest")) {
+                            pattern = Pattern.compile("[0-9]+\\s\\w+\\s[0-9]+");
+                        } else {
+                            pattern = Pattern.compile("\\s+[0-9]+");
+                        }
+                        Matcher matcher = pattern.matcher(s);
+
+                        if (matcher.find()) {
+                            out = matcher.group(0);
+//
+//                                    if (finalI==1 && startmatch){
+//                                        managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
+//
+//                                    }else if(finalI==0) {
+//                                        managerSpace.put("updates" + finalI, ("Model " + finalI + " " + out));
+////
+//                                    }
+//
+//                                    if (finalI==1 && s.contains("rows")){
+//                                        startmatch = true;
+//                                    }
+
+                            String name = scriptPath.split("/")[scriptPath.split("/").length-1];
+                            managerSpace.put("updates", ("Model " + name + " " + out), index);
+
+
+                        }
+
+                    }
+
+                    System.out.println("finished");
+
+                    /**
+                     * Start testing
+                     */
+
+//                            privateSpace.get("data", new FormalField())
+
+                    // model is trained
+//                            System.out.println("done "+finalI);
+//
+//                            // start model testing
+//                            Process process1 = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI]});
+//                            BufferedReader stdInput1 = new BufferedReader(new InputStreamReader(process1.getInputStream()));
+//                            String s1=null;
+//
+//                            while ((s1 = stdInput1.readLine()) != null){
+//
+//                            }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+    }
 
     public void executeParallel(RemoteSpace managerSpace) {
         for (int i=0; i < scriptPaths.length; i++){

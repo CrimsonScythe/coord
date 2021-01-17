@@ -147,7 +147,66 @@ class createPrivateSpace implements Runnable{
 
                 }
             } else {
+                // sequential mode
+                while (true) {
 
+                    Object[] updates1 = updatesSpace.get(new ActualField("updates"), new FormalField(String.class), new FormalField(Integer.class));
+//                    Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
+
+//                    if (!updates1[1].toString().equals("") && !updates1[1].toString().equals("")) {
+
+                      if (updates1[1].toString().contains("forest")) {
+
+                        int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
+                        int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
+
+                        float c = ((float) a / (float) b) * 100.0f;
+
+                        System.out.println((int) c + "%" );
+
+                        String updates = (int) c + "%";
+
+                        // put the prettied content to userupdatespace
+
+                        if (((int) c)==100 ) {
+                            // TODO: signal break out of loop to user
+                            userUpdatesSpace.put("updates", updates);
+                            if ((int) updates1[2] == modelPaths.length-1){
+                                userUpdatesSpace.put("loop", "break");
+                                break;
+                            }
+
+                        } else {
+                            // TODO: otherwise continue sending updates
+                            userUpdatesSpace.put("updates", updates);
+                        }
+
+
+                    } else {
+
+
+                          int d = Integer.parseInt(updates1[1].toString().split("\\s+")[2]);
+
+                          System.out.println((int) d + "%");
+
+                          String updates = (int) d + "%";
+
+                          // put the prettied content to userupdatespace
+
+                          if (((int) d)==100) {
+                              // TODO: signal break out of loop to user
+                              userUpdatesSpace.put("updates", updates);
+                              if ((int) updates1[2] == modelPaths.length-1){
+                                  userUpdatesSpace.put("loop", "break");
+                                  break;
+                              }
+                          } else {
+                              // TODO: otherwise continue sending updates
+                              userUpdatesSpace.put("updates", updates);
+                          }
+
+                      }
+                }
             }
 //            Object[] testData = userUpdatesSpace.get(new ActualField("user"+uuid), new FormalField(Object.class), new FormalField(Object.class), new FormalField(String.class), new FormalField(String.class));
 //            RemoteSpace remoteSpace = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");

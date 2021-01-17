@@ -7,6 +7,7 @@ import org.jspace.*;
 
 import java.io.*;
 import java.rmi.Remote;
+import java.util.EmptyStackException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,7 +22,7 @@ public class ModelExecuter {
 
         spaceRepository.add(RESOURCES_SPACE, resourceSpace);
         // add initial resources
-        resourceSpace.put("resources", 1);
+        resourceSpace.put("resources", 3);
         spaceRepository.add(LISTEN_SPACE, listenSpace);
         spaceRepository.addGate("tcp://localhost:8080/?keep");
 
@@ -101,19 +102,21 @@ class createPrivateServer implements Runnable {
                 managerSpace.put("mode", "parallel");
                 // reduce resources to indicate that resources are in use
                 resources -= scriptPaths.length;
+                System.out.println("ppppppppppp " + resources);
+                if (resources<0){throw new EmptyStackException();}
                 resourceSpace.put("resources", resources);
                 // parallel
                 executeParallel(managerSpace);
                 // free resources
 
-                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
-                if (re==0){
-                    resourceSpace.put("resources", scriptPaths.length);
-                } else {
-                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
-                    re1+= scriptPaths.length;
-                    resourceSpace.put("resources", re1);
-                }
+//                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+//                if (re==0){
+//                    resourceSpace.put("resources", scriptPaths.length);
+//                } else {
+//                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+//                    re1+= scriptPaths.length;
+//                    resourceSpace.put("resources", re1);
+//                }
 
             } else {
                 // sequential
@@ -285,8 +288,17 @@ class createPrivateServer implements Runnable {
                         }
 
                         /**
-                         * Start testing
+                         * Start testing/ Finished training
                          */
+
+                        int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+                        if (re==0){
+                            resourceSpace.put("resources", 1);
+                        } else {
+                            int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                            re1+= 1;
+                            resourceSpace.put("resources", re1);
+                        }
 
 //                            privateSpace.get("data", new FormalField())
 

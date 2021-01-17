@@ -45,6 +45,7 @@ public class User {
             RemoteSpace privateUserSpace = new RemoteSpace("tcp://localhost:8000/"+USER_UPDATES_SPACE+uuid+"?keep");
 
             // get prettified updates from manager
+            // TODO: race condition here when using getp()
             while (true) {
                 //TODO: make a sketch in report of the loop being broken by third party
                 // break loop when other party is done and use of getp to prevent blocking

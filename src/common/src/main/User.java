@@ -49,14 +49,19 @@ public class User {
             while (true) {
                 //TODO: make a sketch in report of the loop being broken by third party
                 // break loop when other party is done and use of getp to prevent blocking
-                Object[] loop = privateUserSpace.getp(new ActualField("loop"), new FormalField(String.class));
-                if (loop!=null && loop[1].equals("break")) {
-//                    Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class));
-//                    System.out.println((String) response[1]);
+                Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class), new FormalField(String.class), new FormalField(String.class));
+                System.out.println((String) response[1]);
+
+                if (response[3].equals("break")) {
                     break;
                 }
-                Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class));
-                System.out.println((String) response[1]);
+
+//                Object[] loop = privateUserSpace.getp(new ActualField("loop"), new FormalField(String.class));
+//                if (loop!=null && loop[1].equals("break")) {
+//                    break;
+//                }
+//                Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class));
+//                System.out.println((String) response[1]);
             }
 
             System.out.println("finished training - awaiting testing");

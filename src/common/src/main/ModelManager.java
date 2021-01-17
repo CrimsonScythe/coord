@@ -133,12 +133,12 @@ class createPrivateSpace implements Runnable{
 
                         if (((int) c)==100 && ((int) d)==100) {
                             // TODO: signal break out of loop to user
-                            userUpdatesSpace.put("updates", updates);
-                            userUpdatesSpace.put("loop", "break");
+                            userUpdatesSpace.put("updates", updates, "loop", "break");
+//                            userUpdatesSpace.put("loop", "break");
                             break;
                         } else {
                             // TODO: otherwise continue sending updates
-                            userUpdatesSpace.put("updates", updates);
+                            userUpdatesSpace.put("updates", updates, "loop", "continue");
                         }
 
 
@@ -170,15 +170,16 @@ class createPrivateSpace implements Runnable{
 
                         if (((int) c)==100 ) {
                             // TODO: signal break out of loop to user
-                            userUpdatesSpace.put("updates", updates);
                             if ((int) updates1[2] == modelPaths.length-1){
-                                userUpdatesSpace.put("loop", "break");
+                                userUpdatesSpace.put("updates", updates, "loop", "break");
                                 break;
+                            } else {
+                                userUpdatesSpace.put("updates", updates, "loop", "continue");
                             }
 
                         } else {
                             // TODO: otherwise continue sending updates
-                            userUpdatesSpace.put("updates", updates);
+                            userUpdatesSpace.put("updates", updates, "loop", "continue");
                         }
 
 
@@ -195,14 +196,15 @@ class createPrivateSpace implements Runnable{
 
                           if (((int) d)==100) {
                               // TODO: signal break out of loop to user
-                              userUpdatesSpace.put("updates", updates);
                               if ((int) updates1[2] == modelPaths.length-1){
-                                  userUpdatesSpace.put("loop", "break");
+                                  userUpdatesSpace.put("updates", updates, "loop", "break");
                                   break;
+                              } else {
+                                  userUpdatesSpace.put("updates", updates, "loop", "continue");
                               }
                           } else {
                               // TODO: otherwise continue sending updates
-                              userUpdatesSpace.put("updates", updates);
+                              userUpdatesSpace.put("updates", updates, "loop", "continue");
                           }
 
                       }

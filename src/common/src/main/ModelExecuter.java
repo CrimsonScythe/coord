@@ -1,16 +1,11 @@
 package common.src.main;
-
-import okhttp3.Response;
-import okio.BufferedSink;
-import okio.Okio;
 import org.jspace.*;
-
-import java.io.*;
-import java.rmi.Remote;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.EmptyStackException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import static common.src.main.Constants.*;
 
 public class ModelExecuter {
@@ -55,8 +50,8 @@ class createPrivateServer implements Runnable {
     private SequentialSpace listenSpace;
 //    private Object filepaths;
     private final String[] scriptPaths;
-    private final String datapath;
-    private final String mode;
+    private String datapath;
+    private String mode;
     private final String column;
     private final SpaceRepository spaceRepository;
     private final SequentialSpace resourceSpace;
@@ -109,14 +104,6 @@ class createPrivateServer implements Runnable {
                 executeParallel(managerSpace);
                 // free resources
 
-//                int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
-//                if (re==0){
-//                    resourceSpace.put("resources", scriptPaths.length);
-//                } else {
-//                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
-//                    re1+= scriptPaths.length;
-//                    resourceSpace.put("resources", re1);
-//                }
 
             } else {
                 // sequential
@@ -140,14 +127,17 @@ class createPrivateServer implements Runnable {
                     }
                 }
 
-                // reduce resources by 1 to indicate in use
-
-                // sequential
-                // free resources
-
-
             }
 
+            // await test data
+            Object[] testdata = privateSpace.get(new FormalField(String.class), new FormalField(String.class), new FormalField(Object.class));
+            // no resources here
+            mode = "test";
+            datapath = (String) testdata[1];
+            executeParallel(managerSpace);
+
+
+            // start testing
 
 
 
@@ -256,6 +246,7 @@ class createPrivateServer implements Runnable {
                         while ((s = stdInput.readLine()) != null) {
 //                                System.out.println(s);
                             // put updates in manager space
+                            System.out.println(s);
                             Pattern pattern;
                             String out = null;
 //                                System.out.println(s);
@@ -325,21 +316,21 @@ class createPrivateServer implements Runnable {
         }
     }
 
-    public void createOutputCSV(Response response) {
-        try {
-
-            File downloadedFile = new File("/home/kamal/Downloads/data/out.csv");
-            BufferedSink sink = Okio.buffer(Okio.sink(downloadedFile));
-            sink.writeAll(response.body().source());
-            sink.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
+//    public void createOutputCSV(Response response) {
+//        try {
+//
+//            File downloadedFile = new File("/home/kamal/Downloads/data/out.csv");
+//            BufferedSink sink = Okio.buffer(Okio.sink(downloadedFile));
+//            sink.writeAll(response.body().source());
+//            sink.close();
+//
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
 
 }
 

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 
 import static common.src.main.Constants.*;
+import static common.src.main.Constants.*;
 
 public class ModelManager {
     public static void main(String[] args) {
@@ -76,11 +77,9 @@ class createPrivateSpace implements Runnable{
         try {
 
             // Create own private space for model executor to write to
-
-            SequentialSpace updatesSpace = new SequentialSpace();
             SequentialSpace userUpdatesSpace = new SequentialSpace();
+            SequentialSpace updatesSpace = new SequentialSpace();
 
-//            SpaceRepository spaceRepository = new SpaceRepository();
             /**
              * put global lock
              * put empty updates list
@@ -102,21 +101,20 @@ class createPrivateSpace implements Runnable{
             // model manager puts the script and data
             serverSpace.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), mode, column);
 
+
             // waits for updates from model executor
 
             // here we must wait and see if the execution is parallel or sequential
             // TODO:// branching good for report
             String mode = (String) updatesSpace.get(new ActualField("mode"), new FormalField(String.class))[1];
             if (mode.equals("parallel")) {
+
                 while (true){
-
-
 
                     Object[] updates1 = updatesSpace.get(new ActualField("updates0"), new FormalField(String.class));
                     Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
 
                     if (!updates1[1].toString().equals("") && !updates2[1].toString().equals("")) {
-
 
                         int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
                         int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
@@ -151,9 +149,6 @@ class createPrivateSpace implements Runnable{
                 while (true) {
 
                     Object[] updates1 = updatesSpace.get(new ActualField("updates"), new FormalField(String.class), new FormalField(Integer.class));
-//                    Object[] updates2 = updatesSpace.get(new ActualField("updates1"), new FormalField(String.class));
-
-//                    if (!updates1[1].toString().equals("") && !updates1[1].toString().equals("")) {
 
                       if (updates1[1].toString().contains("forest")) {
 
@@ -210,13 +205,24 @@ class createPrivateSpace implements Runnable{
                       }
                 }
             }
-//            Object[] testData = userUpdatesSpace.get(new ActualField("user"+uuid), new FormalField(Object.class), new FormalField(Object.class), new FormalField(String.class), new FormalField(String.class));
-//            RemoteSpace remoteSpace = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");
-//            remoteSpace.put()
+
+            // training finished
+            // start testing now
+            // wait for updates from user
+            Object[] testdata = userUpdatesSpace.get(new FormalField(String.class), new FormalField(String.class));
+            String testpath = (String) testdata[1];
+            // connect to private model executor space
+            RemoteSpace privateexec = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");
+            // send data to private model executor space
+            privateexec.put("testdata", testpath, modelPaths);
+
+//            privateexec.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), mode, column);
 
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
+
+
 
     }
 }

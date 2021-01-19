@@ -167,6 +167,17 @@ class createPrivateSpace implements Runnable{
 
                       if (updates1[1].toString().contains("forest")) {
 
+                          if (updates1[1].toString().contains("done")){
+                              String updates = updates1[1].toString();
+                              System.out.println(updates);
+                              if ((int) updates1[2] == modelPaths.length-1) {
+                                  userUpdatesSpace.put("updates", updates, "loop", "break");
+                                  break;
+                              }
+                              userUpdatesSpace.put("updates", updates, "loop", "continue");
+                              continue;
+                          }
+
                         int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
                         int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
 
@@ -178,23 +189,33 @@ class createPrivateSpace implements Runnable{
 
                         // put the prettied content to userupdatespace
 
-                        if (((int) c)==100 ) {
+//                        if (((int) c)==100 ) {
                             // TODO: signal break out of loop to user
-                            if ((int) updates1[2] == modelPaths.length-1){
-                                userUpdatesSpace.put("updates", updates, "loop", "break");
-                                break;
-                            } else {
+//                            if ((int) updates1[2] == modelPaths.length-1){
+//                                userUpdatesSpace.put("updates", updates, "loop", "break");
+//                                break;
+//                            } else {
                                 userUpdatesSpace.put("updates", updates, "loop", "continue");
-                            }
+//                            }
 
-                        } else {
+//                        } else {
                             // TODO: otherwise continue sending updates
-                            userUpdatesSpace.put("updates", updates, "loop", "continue");
-                        }
+//                            userUpdatesSpace.put("updates", updates, "loop", "continue");
+//                        }
 
 
                     } else {
 
+                          if (updates1[1].toString().contains("done")){
+                              String updates = updates1[1].toString();
+                              System.out.println(updates);
+                              if ((int) updates1[2] == modelPaths.length-1) {
+                                  userUpdatesSpace.put("updates", updates, "loop", "break");
+                                  break;
+                              }
+                              userUpdatesSpace.put("updates", updates, "loop", "continue");
+                              continue;
+                          }
 
                           int d = Integer.parseInt(updates1[1].toString().split("\\s+")[2]);
 
@@ -204,18 +225,18 @@ class createPrivateSpace implements Runnable{
 
                           // put the prettied content to userupdatespace
 
-                          if (((int) d)==100) {
-                              // TODO: signal break out of loop to user
-                              if ((int) updates1[2] == modelPaths.length-1){
-                                  userUpdatesSpace.put("updates", updates, "loop", "break");
-                                  break;
-                              } else {
+//                          if (((int) d)==100) {
+//                               TODO: signal break out of loop to user
+//                              if ((int) updates1[2] == modelPaths.length-1){
+//                                  userUpdatesSpace.put("updates", updates, "loop", "break");
+//                                  break;
+//                              } else {
                                   userUpdatesSpace.put("updates", updates, "loop", "continue");
-                              }
-                          } else {
+//                              }
+//                          } else {
                               // TODO: otherwise continue sending updates
-                              userUpdatesSpace.put("updates", updates, "loop", "continue");
-                          }
+//                              userUpdatesSpace.put("updates", updates, "loop", "continue");
+//                          }
 
                       }
                 }

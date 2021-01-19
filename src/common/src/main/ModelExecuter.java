@@ -170,6 +170,7 @@ class createPrivateServer implements Runnable {
                         // put updates in manager space
 
                         if (s.contains("done")){
+
                             String name = scriptPath.split("/")[scriptPath.split("/").length-1];
                             managerSpace.put("updates", ("Model " + name + " " + s), index);
 

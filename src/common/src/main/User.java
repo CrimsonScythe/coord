@@ -7,6 +7,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static common.src.main.Constants.LISTEN_SPACE;
@@ -50,11 +52,18 @@ public class User {
 
             // get prettified updates from manager
             // TODO: race condition here when using getp()
+            List<String> lst = new ArrayList<String>();
             while (true) {
                 //TODO: make a sketch in report of the loop being broken by third party
                 // break loop when other party is done and use of getp to prevent blocking
                 Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class), new FormalField(String.class), new FormalField(String.class));
-                System.out.println((String) response[1]);
+
+                if (((String) response[1]).contains("done")) {
+                    lst.add((String) response[1]);
+                } else {
+                    System.out.println((String) response[1]);
+
+                }
 
                 if (response[3].equals("break")) {
                     break;
@@ -66,6 +75,12 @@ public class User {
 //                }
 //                Object[] response = privateUserSpace.get(new ActualField("updates"), new FormalField(String.class));
 //                System.out.println((String) response[1]);
+            }
+
+            if (lst.size()==1){
+                System.out.println(lst.get(0));
+            } else {
+                System.out.println(lst.get(0)+" "+lst.get(1));
             }
 
             System.out.println("finished training - awaiting testing");

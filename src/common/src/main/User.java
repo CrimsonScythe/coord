@@ -23,18 +23,19 @@ public class User {
 
         try {
             //create local directory
-//            File theDir = new File("/home/kamal/Downloads/data/"+uuid+"/");
-//            if (!theDir.exists()){
-//                theDir.mkdirs();
-//            }
+            File theDir = new File("/home/kamal/Downloads/data/"+uuid+"/");
+            if (!theDir.exists()){
+                theDir.mkdirs();
+            }
 
             File newdataFile = new File("/home/kamal/Downloads/data/ks-projects.csv");
+            File testdataFile = new File("/home/kamal/Downloads/data/ks-projects.csv");
 
             // connect to global remotespace to create specific space
             RemoteSpace remoteSpace = new RemoteSpace("tcp://localhost:5000/"+LISTEN_SPACE+"?keep");
 
             // send data file path to model manager
-            remoteSpace.put(uuid.toString()+"-server", uuid.toString(), newdataFile, "train", column);
+            remoteSpace.put(uuid.toString()+"-server", uuid.toString(), newdataFile, testdataFile, "train", column);
 
             // TODO: FOR REPORT: Race condition if we connect to remotespace here without making the check
             //  as it might not have been created yet
@@ -68,16 +69,28 @@ public class User {
             }
 
             System.out.println("finished training - awaiting testing");
-            System.out.println("Sending testing request");
+            System.out.println("Please choose desired model: 0 or 1 to download predictions");
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String selection = br.readLine();
+
+            System.out.println("sending download request");
+            String dataSavePath = "/home/kamal/Downloads/data/"+uuid+"/";
+            privateUserSpace.put("selection", Integer.parseInt(selection), dataSavePath);
+
+            Object[] res = privateUserSpace.get(new ActualField("downloaded"), new FormalField(String.class));
+            System.out.println("download complete "+"file location is: "+res[1]);
+
+//            System.out.println("Sending testing request");
 //
 //
-            String pathToTestData = "/home/kamal/Downloads/data/ks-projects.csv";
-            privateUserSpace.put("path", pathToTestData);
+//            String pathToTestData = "/home/kamal/Downloads/data/ks-projects.csv";
+//            privateUserSpace.put("path", pathToTestData);
 //
 //            // await testing
-            privateUserSpace.get();
+//            privateUserSpace.get();
 
-            //            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+//                        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 //            String pathToTestData = br.readLine();
 
             // send data for testing

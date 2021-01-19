@@ -29,6 +29,7 @@ public class ModelExecuter {
                         new FormalField(Object.class),
                         new FormalField(String[].class),
                         new FormalField(Object.class),
+                        new FormalField(Object.class),
                         new FormalField(String.class),
                         new FormalField(String.class)
                 );
@@ -55,14 +56,16 @@ class createPrivateServer implements Runnable {
     private final String column;
     private final SpaceRepository spaceRepository;
     private final SequentialSpace resourceSpace;
+    private String testpath;
 
     public createPrivateServer(SpaceRepository spaceRepository, Object[] datas, SequentialSpace listenSpace, SequentialSpace resourceSpace){
         this.uuid = (String) datas[1];
         this.listenSpace = listenSpace;
         this.scriptPaths = (String[]) datas[2];
         this.datapath = (String) datas[3];
-        this.mode = (String) datas[4];
-        this.column = (String) datas[5];
+        this.testpath = (String) datas[4];
+        this.mode = (String) datas[5];
+        this.column = (String) datas[6];
         this.spaceRepository=spaceRepository;
         this.resourceSpace = resourceSpace;
     }
@@ -154,7 +157,7 @@ class createPrivateServer implements Runnable {
 
                 try {
                     String s = null;
-                    String args = new String(datapath+" "+mode+" "+column+" "+uuid);
+                    String args = new String(datapath+" "+testpath+" "+mode+" "+column+" "+uuid);
                     System.out.println("yolo");
                     System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPath + " " + args);
                     Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPath + " " + args});
@@ -165,6 +168,14 @@ class createPrivateServer implements Runnable {
                     while ((s = stdInput.readLine()) != null) {
 //                                System.out.println(s);
                         // put updates in manager space
+
+                        if (s.contains("done")){
+                            String name = scriptPath.split("/")[scriptPath.split("/").length-1];
+                            managerSpace.put("updates", ("Model " + name + " " + s), index);
+
+                            break;
+                        }
+
                         Pattern pattern;
                         String out = null;
 //                                System.out.println(s);
@@ -235,7 +246,7 @@ class createPrivateServer implements Runnable {
                 public void run() {
                     try {
                         String s = null;
-                        String args = new String(datapath+" "+mode+" "+column+" "+uuid);
+                        String args = new String(datapath+" "+testpath+" "+mode+" "+column+" "+uuid);
                         System.out.println("yolo");
                         System.out.println("source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args);
                         Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "source /home/kamal/projects/quickml/env/bin/activate; python3 " + scriptPaths[finalI] + " " + args});
@@ -247,6 +258,12 @@ class createPrivateServer implements Runnable {
 //                                System.out.println(s);
                             // put updates in manager space
                             System.out.println(s);
+
+                            if (s.contains("done")){
+                                managerSpace.put("updates" + finalI, ("Model " + finalI + " " + s));
+                                break;
+                            }
+
                             Pattern pattern;
                             String out = null;
 //                                System.out.println(s);
@@ -282,14 +299,14 @@ class createPrivateServer implements Runnable {
                          * Start testing/ Finished training
                          */
 
-                        int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
-                        if (re==0){
-                            resourceSpace.put("resources", 1);
-                        } else {
-                            int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
-                            re1+= 1;
-                            resourceSpace.put("resources", re1);
-                        }
+//                        int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+//                        if (re==0){
+//                            resourceSpace.put("resources", 1);
+//                        } else {
+//                            int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+//                            re1+= 1;
+//                            resourceSpace.put("resources", re1);
+//                        }
 
 //                            privateSpace.get("data", new FormalField())
 

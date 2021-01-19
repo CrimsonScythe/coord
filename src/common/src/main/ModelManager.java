@@ -3,6 +3,10 @@ import org.jspace.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedList;
 
 import static common.src.main.Constants.*;
@@ -25,6 +29,7 @@ public class ModelManager {
                 Object[] datas = listenSpace.get(
                         new FormalField(String.class),
                         new FormalField(String.class),
+                        new FormalField(Object.class),
                         new FormalField(Object.class),
                         new FormalField(String.class),
                         new FormalField(String.class)
@@ -53,6 +58,7 @@ class createPrivateSpace implements Runnable{
     String[] modelPaths;
     String column;
     String mode;
+    File testdata;
 
     public createPrivateSpace(SpaceRepository spaceRepository, SequentialSpace listenSpace, Object[] datas) {
         this.spaceRepository=spaceRepository;
@@ -65,8 +71,9 @@ class createPrivateSpace implements Runnable{
                 "/home/kamal/Documents/boost.py"
 //                "/home/kamal/Documents/bag.py"
         };
-        this.mode = (String) datas[3];
-        this.column = (String) datas[4];
+        this.mode = (String) datas[4];
+        this.column = (String) datas[5];
+        this.testdata = (File) datas[3];
     }
 
     @Override
@@ -99,7 +106,7 @@ class createPrivateSpace implements Runnable{
             RemoteSpace serverSpace = new RemoteSpace("tcp://localhost:8080/"+LISTEN_SPACE+"?keep");
 
             // model manager puts the script and data
-            serverSpace.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), mode, column);
+            serverSpace.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), testdata.getPath(),mode, column);
 
 
             // waits for updates from model executor
@@ -116,6 +123,13 @@ class createPrivateSpace implements Runnable{
 
                     if (!updates1[1].toString().equals("") && !updates2[1].toString().equals("")) {
 
+                        if (updates1[1].toString().contains("done") && updates2[1].toString().contains("done")){
+                            String updates = updates1[1].toString()+" "+updates2[1].toString();
+                            System.out.println(updates);
+                            userUpdatesSpace.put("updates", updates, "loop", "break");
+                            break;
+                        }
+
                         int a = Integer.parseInt(updates1[1].toString().split("\\s")[2]);
                         int b = Integer.parseInt(updates1[1].toString().split("\\s")[4]);
 
@@ -129,21 +143,22 @@ class createPrivateSpace implements Runnable{
 
                         // put the prettied content to userupdatespace
 
-                        if (((int) c)==100 && ((int) d)==100) {
-                            // TODO: signal break out of loop to user
-                            userUpdatesSpace.put("updates", updates, "loop", "break");
-//                            userUpdatesSpace.put("loop", "break");
-                            break;
-                        } else {
+//                        if (((int) c)==100 && ((int) d)==100) {
+//                            // TODO: signal break out of loop to user
+//                            userUpdatesSpace.put("updates", updates, "loop", "break");
+//                            break;
+//                        } else {
                             // TODO: otherwise continue sending updates
                             userUpdatesSpace.put("updates", updates, "loop", "continue");
-                        }
+//                        }
 
 
                     }
 
 
                 }
+
+
             } else {
                 // sequential mode
                 while (true) {
@@ -206,15 +221,32 @@ class createPrivateSpace implements Runnable{
                 }
             }
 
+
+
             // training finished
-            // start testing now
-            // wait for updates from user
-            Object[] testdata = userUpdatesSpace.get(new FormalField(String.class), new FormalField(String.class));
-            String testpath = (String) testdata[1];
-            // connect to private model executor space
-            RemoteSpace privateexec = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");
-            // send data to private model executor space
-            privateexec.put("testdata", testpath, modelPaths);
+
+            // wait for selection from user
+            Object[] selection = userUpdatesSpace.get(new ActualField("selection"),
+                    new FormalField(Integer.class),
+                    new FormalField(String.class));
+
+            int sel = (int) selection[1];
+
+            String name = modelPaths[sel].split("/")[modelPaths[sel].split("/").length-1].split("\\.")[0];
+            System.out.println("/home/kamal/Downloads/jSpace-Project/"+uuid+name+".csv");
+            System.out.println(selection[2]);
+            String userLoc = ((String) selection[2])+"output.csv";
+            File myFile = new File("/home/kamal/Downloads/jSpace-Project/"+uuid+name+".csv");
+//            Boolean res = myFile.renameTo(new File((String) selection[2]));
+            Path pt = Files.move(Paths.get(myFile.getPath()), Paths.get(userLoc), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println(pt);
+            userUpdatesSpace.put("downloaded", pt.toString());
+
+//            String testpath = (String) testdata[1];
+//            // connect to private model executor space
+//            RemoteSpace privateexec = new RemoteSpace("tcp://localhost:8080/"+uuid+"?keep");
+//            // send data to private model executor space
+//            privateexec.put("testdata", testpath, modelPaths);
 
 //            privateexec.put(uuid+"-exec", uuid ,modelPaths, data.getPath(), mode, column);
 

@@ -76,11 +76,6 @@ class createPrivateServer implements Runnable {
 
         try {
 
-            // create local space so that the manager can connect and send test data
-            SequentialSpace privateSpace = new SequentialSpace();
-            spaceRepository.add(uuid, privateSpace);
-            spaceRepository.addGate("tcp://localhost:8080/?keep");
-
             // connect to manager space
             RemoteSpace managerSpace = new RemoteSpace("tcp://localhost:8000/"+UPDATES_SPACE+uuid+"?keep");
 
@@ -244,7 +239,6 @@ class createPrivateServer implements Runnable {
 
         }
     }
-
 
 }
 

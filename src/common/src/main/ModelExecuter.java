@@ -18,7 +18,7 @@ public class ModelExecuter {
         spaceRepository.add(RESOURCES_SPACE, resourceSpace);
 
         // set initial resources
-        resourceSpace.put("resources", 3);
+        resourceSpace.put("resources", 4);
         spaceRepository.add(LISTEN_SPACE, listenSpace);
         spaceRepository.addGate("tcp://localhost:8080/?keep");
 
@@ -56,7 +56,7 @@ class createPrivateServer implements Runnable {
     private String mode;
     private final String column;
     private final SpaceRepository spaceRepository;
-    private final SequentialSpace resourceSpace;
+//    private final SequentialSpace resourceSpace;
     private String testpath;
 
     public createPrivateServer(SpaceRepository spaceRepository, Object[] datas, SequentialSpace listenSpace, SequentialSpace resourceSpace){
@@ -68,13 +68,14 @@ class createPrivateServer implements Runnable {
         this.mode = (String) datas[5];
         this.column = (String) datas[6];
         this.spaceRepository=spaceRepository;
-        this.resourceSpace = resourceSpace;
     }
 
     @Override
     public void run() {
 
         try {
+
+            RemoteSpace resourceSpace = new RemoteSpace("tcp://localhost:8080/"+RESOURCES_SPACE+"?keep");
 
             // connect to manager space
             RemoteSpace managerSpace = new RemoteSpace("tcp://localhost:8000/"+UPDATES_SPACE+uuid+"?keep");
@@ -83,7 +84,8 @@ class createPrivateServer implements Runnable {
             // otherwise we cannot
             // TODO: mutex in code block below?
 
-            // TODO: expain get query things here in the report?
+            // TODO: Deadlock if get instead of query below
+            System.out.println("waiting");
             int resourcesQ = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
             System.out.println(resourcesQ);
 
@@ -96,30 +98,41 @@ class createPrivateServer implements Runnable {
                 // update resources in tuple space
                 resourceSpace.put("resources", resources);
                 // parallel execution
-                executeParallel(managerSpace);
+                executeParallel(managerSpace, resourceSpace);
 
 
             } else {
+                System.out.println("waiting seq");
+                while (resourcesQ==0){
+                    resourcesQ = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+                }
+                System.out.println("waiting seq done");
                 // sequential
                 // indicate to manager that execution is sequential
                 managerSpace.put("mode", "sequential");
 
                 for (int i=0; i < scriptPaths.length; i++){
+
+                    while (resourcesQ==0){
+                        resourcesQ = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+                    }
+
                     int resources = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+
                     // reduce resrouces to indicate in use
                     resources -= 1;
                     // update resources space
                     resourceSpace.put("resources", resources);
                     // seq execution
                     executeSequential(managerSpace, scriptPaths[i], i);
-                    int re = (int) resourceSpace.query(new ActualField("resources"), new FormalField(Integer.class))[1];
+                    int re = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
 
                     if (re==0){
                         resourceSpace.put("resources", 1);
                     } else {
-                        int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
-                        re1+= 1;
-                        resourceSpace.put("resources", re1);
+//                        int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                        re+= 1;
+                        resourceSpace.put("resources", re);
                     }
                 }
 
@@ -184,7 +197,7 @@ class createPrivateServer implements Runnable {
 
     }
 
-    public void executeParallel(RemoteSpace managerSpace) {
+    public void executeParallel(RemoteSpace managerSpace, Space resourceSpace) {
         for (int i=0; i < scriptPaths.length; i++){
             int finalI = i;
 
@@ -205,6 +218,22 @@ class createPrivateServer implements Runnable {
                             if (s.contains("done")){
                                 // indicate to manager that execution is done
                                 managerSpace.put("updates" + finalI, ("Model " + finalI + " " + s));
+                                // put resources back
+                                // TODO query here because, if get then second
+                                //  thread would have to wait before terminating execution
+
+                                System.out.println("waiting update");
+                                int re = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                                System.out.println("waiting update finished");
+                                System.out.println(re);
+
+                                if (re==0){
+                                    resourceSpace.put("resources", 1);
+                                } else {
+//                                    int re1 = (int) resourceSpace.get(new ActualField("resources"), new FormalField(Integer.class))[1];
+                                    re+= 1;
+                                    resourceSpace.put("resources", re);
+                                }
                                 break;
                             }
 
